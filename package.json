@@ -2,7 +2,7 @@
   "name": "zelenchong",
   "version": "1.0.0",
   "description": "Zelenchong bot source",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "npx nodemon src/index.js --watch src/"
@@ -64,8 +64,7 @@
       "/.git",
       "/.vscode",
       "tsconfig.json",
-      "node_modules",
-      "/src/**/.js"
+      "node_modules"
     ],
     "rules": {
       "no-console": "off",
@@ -78,12 +77,10 @@
       "/node_modules",
       "/.vscode"
     ],
-    "ext": "js, ts",
-    "execMap": {
-      "ts": "npx ts-node"
-    }
+    "ext": "js"
   },
   "dependencies": {
+    "cheerio": "^1.0.0-rc.5",
     "discord.js": "^12.5.1",
     "dotenv": "^8.2.0",
     "ffmpeg-static": "^4.2.7",
