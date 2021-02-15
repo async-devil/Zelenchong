@@ -85,6 +85,7 @@
     "dotenv": "^8.2.0",
     "ffmpeg-static": "^4.2.7",
     "opusscript": "^0.0.7",
+    "request": "^2.88.2",
     "ytdl-core": "^4.4.5"
   }
 }
