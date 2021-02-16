@@ -1,47 +1,53 @@
-/*---------------------------------------------------------------------------------------------------*/
-
-function init(client) {
+function init(client, prefix) {
   client.on('message', async (msg) => {
-    if (msg.content.search(/^=clear \d+$/gm) != -1) {
+    if (msg.author.bot) return;
+    if (!msg.content.startsWith(prefix)) return;
+
+    const commandBody = msg.content.slice(prefix.length);
+    const args = commandBody.split(' ');
+    const command = args.shift().toLowerCase();
+
+
+    if (command === 'clear') {
       clear(
         client,
         msg,
-        msg.content.split(' ')[1] != undefined ? parseInt(msg.content.split(' ')[1]) : 1,
+        args[0]
       );
     }
   });
 }
 
-/*---------------------------------------------------------------------------------------------------*/
-
-const clear = (client, msg, limit) => {
+const clear = (client, msg, count) => {
+  const limit = 200;
   const channel = client.channels.cache.get(msg.channel.id);
 
-  async function deleteByLimit(limit) {
-    await channel.messages.fetch({ limit: limit + 1 }).then((messages) => {
+  async function deleteByLimit(count) {
+    await channel.messages.fetch({ count: count + 1 }).then((messages) => {
       msg.channel.bulkDelete(messages).catch((err) => {
         channel.send(err.message);
       });
     });
   }
-  if (limit >= 100) {
-    for (let i = 0; i < limit / 100; i++) {
+  if(count > limit) {
+    channel.send('Please set number of cleaning messages lower than \`200\`')
+  }
+  if (count >= 100) {
+    for (let i = 0; i < count / 100; i++) {
       deleteByLimit(99).catch((err) => channel.send(`Something went wrong, ${err.message}`));
     }
-    if (limit % 100 != 0) {
-      deleteByLimit(limit % 100).catch((err) =>
+    if (count % 100 != 0) {
+      deleteByLimit(count % 100).catch((err) =>
         channel.send(`Something went wrong, ${err.message}`),
       );
     }
   } else {
-    deleteByLimit(limit).catch((err) => channel.send(`Something went wrong, ${err.message}`));
+    deleteByLimit(count).catch((err) => channel.send(`Something went wrong, ${err.message}`));
   }
 
   channel
-    .send(`<@${msg.author.id}> succsesfuly deleted ${limit} messages!`)
+    .send(`<@${msg.author.id}> succsesfuly deleted ${count} messages!`)
     .then((message) => message.delete({ timeout: 2000 }));
 };
 
 module.exports = init;
-
-/*---------------------------------------------------------------------------------------------------*/

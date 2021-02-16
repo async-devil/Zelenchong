@@ -1,274 +1,174 @@
-const cheerio = require('cheerio');
-const { VoiceConnection, Channel, Message } = require('discord.js');
-const request = require('request');
+const { VoiceConnection, Channel, Util } = require('discord.js');
 const ytdl = require('ytdl-core');
-
-class Element {
-  constructor(link) {
-    if (!this.isValidLink(link)) throw { message: 'Invalid link', path: 'Element' };
-    this.link = link;
-  }
-
-  /**
-   * Set local title
-   * @param {string} title title
-   */
-  setTitle(title) {
-    this.title = title;
-  }
-
-  /**
-   * Get title from title tag from head
-   * @returns {Promise<string>}
-   */
-  getTitle() {
-    return new Promise((res, rej) => {
-      request(this.link, (error, _response, body) => {
-        if (error) rej({ message: error.message, path: 'Element/getTitle' });
-
-        var $ = cheerio.load(body);
-        var title = $('title').text();
-
-        res(title);
-      });
-    });
-  }
-
-  /**
-   * Get an element
-   * @returns {{link: string, title: string}} element
-   */
-  getElement() {
-    if (!this.link || !this.title)
-      throw { message: 'One of arguments is not provided', path: 'Element/getElement' };
-    return {
-      link: this.link,
-      title: this.title,
-    };
-  }
-
-  /**
-   * Check ling to be valid
-   * @param {string} link checking link
-   */
-  isValidLink(link) {
-    return (
-      link.search(
-        new RegExp('(\b(https?|ftp|file)://)?[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]'),
-      ) != -1
-    );
-  }
-}
-
-class YoutubeVideo extends Element {
-  constructor(link) {
-    super(link);
-  }
-
-  /**
-   * Get title from title tag from head
-   * @returns {Promise<string>}
-   */
-  getTitle() {
-    return new Promise((res, rej) => {
-      request(this.link, (error, _response, body) => {
-        if (error) rej({ message: error.message, path: 'Element/getTitle' });
-
-        var $ = cheerio.load(body);
-        var title = $('title').text();
-
-        res(title.replace(' - Youtube', ''));
-      });
-    });
-  }
-
-  /**
-   * Check if youtube link is valid
-   * @param {string} link cheking link
-   * @returns {Promise<boolean>} is valid
-   */
-  isValidYoutubeId(link) {
-    return new Promise((res, rej) => {
-      if (!this.isValidLink(link)) rej({ message: 'Invalid link', path: 'Video/isValidYoutubeId' });
-
-      const id = link.match(/((?<=youtu.be\/)\S{11})|((?<=watch\?v=)\S{11})/)[0];
-      if (!id) rej({ message: 'Invalid youtube link', path: 'Video/isValidYoutubeId' });
-
-      request('http://img.youtube.com/vi/' + id + '/0.jpg', (error, response) => {
-        if (error) rej({ message: error.message, path: 'Video/isValidYoutubeId' });
-        res(response.statusCode === 200 ? true : false);
-      });
-    });
-  }
-}
-
-class Queue {
-  /**
-   * @param {Array<string>} queue queue array
-   */
-  queue = [];
-  /**
-   * Add element to queue
-   * @param {Element} element element which adds
-   */
-  add(element) {
-    this.queue.push(element.getElement());
-  }
-
-  /**
-   * Delete first element
-   */
-  next() {
-    if (this.queue.length == 0) throw { message: 'Queue is empty', path: 'Queue/next' };
-    this.queue.shift();
-  }
-
-  /**
-   * Get first element
-   * @returns {Element} first element
-   */
-  getFirst() {
-    if (this.queue.length == 0) throw { message: 'Queue is empty', path: 'Queue/get' };
-    return this.queue[0];
-  }
-
-  /**
-   * Get all queue
-   * @returns {Array<Element>} queue
-   */
-  get() {
-    return this.queue;
-  }
-}
+const yts = require('yt-search');
 
 class Player {
-  /**
-   * @param {boolean} playingYoutube is playing youtube
-   */
-  playingYoutube = false;
+  queue = new Map();
 
-  constructor(client, queue) {
+  constructor(client, prefix) {
     this.client = client;
-    this.queue = queue;
+    this.prefix = prefix;
   }
 
-  /**
-   * Start function
-   */
   init() {
-    this.client.on('message', async (msg) => {
-      if (!msg.guild) return;
+    this.client.on('message', (msg) => {
+      if (msg.author.bot) return;
+      if (!msg.content.startsWith(this.prefix)) return;
 
-      const channel = this.client.channels.cache.get(msg.channel.id);
-      if (msg.content === '=join') {
-        this.join(msg).catch((err) => {
-          return channel.send(err.message);
-        });
-      }
-      if (msg.content.search(/^=play \S*/gm) != -1) {
-        this.youtubePlayer(msg);
-      }
+      const commandBody = msg.content.slice(this.prefix.length);
+      const args = commandBody.split(' ');
+      const command = args.shift().toLowerCase();
 
-      if (msg.content.search(/^=radio \S*/gm) != -1) {
-        this.radioPlayer(msg);
-      }
-
-      if (msg.content === '=stop') {
-        this.join(msg)
-          .then((connection) => {
-            connection.disconnect();
-            channel.send(`Disconnected from \`${msg.member.voice.channel.name}\``);
-          })
-          .catch((err) => {
-            return channel.send(err.message);
-          });
-      }
-    });
-  }
-  /**
-   * Join voice chat
-   * @param {Message} msg Discord message
-   */
-  async join(msg) {
-    const channel = this.client.channels.cache.get(msg.channel.id);
-    const bot = msg.guild.members.cache.get(this.client.user.id);
-
-    if (!msg.member.voice.channel)
-      throw { message: 'Please join voice channel first', path: 'Player/join' };
-
-    let connection;
-    if (!bot.voice.channel || bot.voice.channelID != msg.member.voice.channelID) {
-      channel.send(`Trying to join \`${msg.member.voice.channel.name}\``);
-    }
-    try {
-      connection = await msg.member.voice.channel.join();
-    } catch (err) {
-      throw { message: err.message, path: 'Player/join' };
-    }
-
-    return connection;
-  }
-
-  /**
-   * Youtube player
-   * @param {Message} msg Discord message
-   */
-  youtubePlayer = (msg) => {
-    const channel = this.client.channels.cache.get(msg.channel.id);
-    const link = msg.content.split(' ')[1];
-    const newElement = new YoutubeVideo(link);
-
-    newElement.getTitle().then((title) => {
-      newElement.setTitle(title);
-      this.queue.add(newElement);
-
-      if (!this.playingYoutube) {
-        this.join(msg).then((connection) => {
-          this.playYoutube(connection, channel);
-        });
-      } else if (this.playingYoutube) {
-        channel.send(`Added to queue \`${this.queue.get()[1].title}\``);
-      }
-    });
-  };
-
-  /**
-   *
-   * @param {VoiceConnection} connection current voice connection
-   * @param {Channel} channel text channel
-   */
-  playYoutube = (connection, channel) => {
-    let dispatcher = connection.play(ytdl(this.queue.getFirst().link, { filter: 'audioonly' }));
-    channel.send(`Now playing \`${this.queue.getFirst().title}\``);
-
-    this.playingYoutube = true;
-    dispatcher.on('finish', () => {
-      this.queue.next();
-      try {
-        this.playYoutube(connection, channel);
-      } catch (err) {
-        this.playingYoutube = false;
-        channel.send('Queue is empty!');
+      if (command === 'play') {
+        const serverQueue = this.queue.get(msg.guild.id);
+        this.execute(msg, args, serverQueue);
         return;
       }
-    });
-  };
+      if (command === 'skip') {
+        const serverQueue = this.queue.get(msg.guild.id);
+        this.skip(msg, serverQueue);
+        return;
+      }
+      if (command === 'stop') {
+        const serverQueue = this.queue.get(msg.guild.id);
+        this.stop(msg, serverQueue);
+        return;
+      }
 
-  /**
-   *  Radio player
-   *  @param {Message} msg Discord message
-   */
-  radioPlayer = (msg) => {
-    const channel = this.client.channels.cache.get(msg.channel.id);
-    const link = msg.content.split(' ')[1];
-
-    this.join(msg).then((connection) => {
-      channel.send(`Now playing \`${link}\``);
-      connection.play(link);
+      if (command === 'radio') {
+        this.join(msg).then((connection) => {
+          msg.channel.send(`Now playing \`${args[0]}\``);
+          connection.play(args[0]);
+        });
+      }
     });
-  };
+  }
+
+  join(msg) {
+    return new Promise((res, rej) => {
+      const bot = msg.guild.members.cache.get(this.client.user.id);
+
+      if (!msg.member.voice.channel) {
+        msg.channel.send('Please join voice channel first');
+      }
+
+      let connection;
+      if (!bot.voice.channel || bot.voice.channelID != msg.member.voice.channelID) {
+        msg.channel.send(`Trying to join \`${msg.member.voice.channel.name}\``);
+      }
+      try {
+        connection = msg.member.voice.channel.join();
+      } catch (err) {
+        rej(err);
+      }
+      res(connection);
+    });
+  }
+
+  async execute(msg, args, serverQueue) {
+    const voiceChannel = msg.member.voice.channel;
+
+    if (!voiceChannel) return msg.channel.send('Please join voice channel first');
+
+    const permissions = voiceChannel.permissionsFor(msg.client.user);
+    if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
+      return msg.channel.send(
+        `I can${permissions.has('CONNECT') ? '' : "'t"} connect ${
+          !permissions.has('CONNECT') && !permissions.has('SPEAK') ? 'and' : 'but'
+        } I can${
+          permissions.has('SPEAK') ? '' : "'t"
+        } speak, please ask admistrators to give me permissions`,
+      );
+    }
+
+    let song;
+    if (ytdl.validateURL(args[0])) {
+      const songInfo = await ytdl.getInfo(args[0]);
+      song = {
+        title: Util.escapeMarkdown(songInfo.videoDetails.title),
+        url: args[0],
+      };
+    } else {
+      const { videos } = await yts(args.join(' '));
+      if (!videos.length) return msg.channel.send('No songs were found!');
+      song = {
+        title: videos[0].title,
+        url: videos[0].url,
+      };
+    }
+
+    if (!serverQueue) {
+      const queueContruct = {
+        textChannel: msg.channel,
+        voiceChannel: voiceChannel,
+        connection: null,
+        songs: [],
+        volume: 5,
+        playing: true,
+      };
+      this.queue.set(msg.guild.id, queueContruct);
+      queueContruct.songs.push(song);
+
+      try {
+        msg.channel.send(`Trying to connect \`${voiceChannel.name}\``);
+        var connection = await voiceChannel.join();
+        queueContruct.connection = connection;
+        this.play(msg, msg.guild, queueContruct.songs[0]);
+      } catch (err) {
+        this.queue.delete(msg.guild.id);
+        return msg.channel.send('Something went wrong: ' + err.message);
+      }
+    } else {
+      serverQueue.songs.push(song);
+      return msg.channel.send(`Added to queue \`${song.title}\``);
+    }
+  }
+
+  skip(msg, serverQueue) {
+    if (!msg.member.voice.channel) return msg.channel.send('Please join voice channel first');
+    if (!serverQueue) return msg.channel.send('Queue is empty!');
+    serverQueue.connection.dispatcher.end();
+  }
+
+  stop(msg, serverQueue) {
+    if (!msg.member.voice.channel) return msg.channel.send('Please join voice channel first');
+    if (serverQueue) {
+      serverQueue.songs = [];
+      serverQueue.connection.dispatcher.end();
+    } else {
+      this.join(msg)
+        .then((connection) => {
+          connection.disconnect();
+        })
+        .catch((err) => {
+          return channel.send(err.message);
+        });
+    }
+
+    msg.channel.send(`Disconnected from \`${msg.member.voice.channel.name}\``);
+  }
+
+  play(msg, guild, song) {
+    const serverQueue = this.queue.get(guild.id);
+    if (!song) {
+      serverQueue.voiceChannel.leave();
+      this.queue.delete(guild.id);
+      return;
+    }
+    const dispatcher = serverQueue.connection
+      .play(ytdl(song.url))
+      .on('finish', () => {
+        msg.channel.send(`Finished playing ${song.title}`)
+        serverQueue.songs.shift();
+        this.play(msg, guild, serverQueue.songs[0]);
+      })
+      .on('start', () => msg.channel.send(`Now playing \`${song.title}\``))
+      .on('error', (err) => {
+        msg.channel.send('Something went wrong: ' + err.message);
+        console.error(err);
+      });
+    dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+  }
 }
 
-exports.YoutubeVideo = YoutubeVideo;
-exports.Player = Player;
-exports.Queue = Queue;
+module.exports = Player;
