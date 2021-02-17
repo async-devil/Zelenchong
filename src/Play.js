@@ -10,6 +10,19 @@ class Player {
     this.prefix = prefix;
   }
 
+  validURL(str) {
+    var pattern = new RegExp(
+      '^(https?:\\/\\/)?' + // protocol
+        '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
+        '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+        '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+        '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+        '(\\#[-a-z\\d_]*)?$', // fragment locator
+      'i',
+    );
+    return !!pattern.test(str);
+  }
+
   init() {
     this.client.on('message', (msg) => {
       if (msg.author.bot) return;
@@ -36,48 +49,82 @@ class Player {
       }
 
       if (command === 'radio') {
-        this.join(msg).then((connection) => {
-          msg.channel.send(`Now playing \`${args[0]}\``);
-          connection.play(args[0]);
-        });
+        if (this.validURL(args[0])) {
+          this.join(msg).then((connection) => {
+            msg.channel.send({
+              embed: {
+                title: 'Unknown radio',
+                url: `${args[0]}`,
+                color: 942019,
+                author: {
+                  name: 'Started playing radio',
+                  url: 'https://github.com/async-devil/Zelenchong',
+                  icon_url: `${msg.author.displayAvatarURL()}`,
+                },
+                fields: [
+                  {
+                    name: '`Stream duration:`',
+                    value: '¯\\_(ツ)_/¯',
+                  },
+                  {
+                    name: '`Requested by:`',
+                    value: `${msg.author.username}`,
+                  },
+                ],
+              },
+            });
+
+            const dispatcher = connection.play(args[0])
+            dispatcher.setVolumeLogarithmic(1);
+          });
+        } else {
+          msg.channel.send('**Link is not valid**');
+        }
       }
     });
   }
 
-  join(msg) {
-    return new Promise((res, rej) => {
-      const bot = msg.guild.members.cache.get(this.client.user.id);
+  async join(msg) {
+    const bot = msg.guild.members.cache.get(this.client.user.id);
 
-      if (!msg.member.voice.channel) {
-        msg.channel.send('Please join voice channel first');
-      }
+    if (!msg.member.voice.channel) {
+      msg.channel.send('**Please join voice channel first**');
+    }
 
-      let connection;
-      if (!bot.voice.channel || bot.voice.channelID != msg.member.voice.channelID) {
-        msg.channel.send(`Trying to join \`${msg.member.voice.channel.name}\``);
+    let connection, joinMessage;
+    if (!bot.voice.channel || bot.voice.channelID != msg.member.voice.channelID) {
+      await msg.channel
+        .send(`**Trying to join** \`${msg.member.voice.channel.name}\``)
+        .then((message) => {
+          joinMessage = message;
+        });
+    }
+    try {
+      connection = msg.member.voice.channel.join();
+      if (joinMessage) {
+        joinMessage.edit(`**Joined** \`${msg.member.voice.channel.name}\``);
+      } else {
+        msg.channel.send(`**Joined** \`${msg.member.voice.channel.name}\``);
       }
-      try {
-        connection = msg.member.voice.channel.join();
-      } catch (err) {
-        rej(err);
-      }
-      res(connection);
-    });
+    } catch (err) {
+      throw err;
+    }
+    return connection;
   }
 
   async execute(msg, args, serverQueue) {
     const voiceChannel = msg.member.voice.channel;
 
-    if (!voiceChannel) return msg.channel.send('Please join voice channel first');
+    if (!voiceChannel) return msg.channel.send('**Please join voice channel first**');
 
     const permissions = voiceChannel.permissionsFor(msg.client.user);
     if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
       return msg.channel.send(
         `I can${permissions.has('CONNECT') ? '' : "'t"} connect ${
           !permissions.has('CONNECT') && !permissions.has('SPEAK') ? 'and' : 'but'
-        } I can${
-          permissions.has('SPEAK') ? '' : "'t"
-        } speak, please ask admistrators to give me permissions`,
+        } I can${permissions.has('SPEAK') ? '' : "'t"} speak also I can${
+          permissions.has('SEND_MESSAGES') ? '' : "'t"
+        } send messages, please ask admistrators to give me permissions`,
       );
     }
 
@@ -87,13 +134,17 @@ class Player {
       song = {
         title: Util.escapeMarkdown(songInfo.videoDetails.title),
         url: args[0],
+        thumbnail: songInfo.videoDetails.thumbnails[0].url,
+        duration: (parseInt(songInfo.videoDetails.lengthSeconds) / 60).toString().replace('.', ':'),
       };
     } else {
       const { videos } = await yts(args.join(' '));
-      if (!videos.length) return msg.channel.send('No songs were found!');
+      if (!videos.length) return msg.channel.send('**No songs were found!**');
       song = {
         title: videos[0].title,
         url: videos[0].url,
+        thumbnail: videos[0].thumbnail,
+        duration: videos[0].duration.timestamp,
       };
     }
 
@@ -110,28 +161,57 @@ class Player {
       queueContruct.songs.push(song);
 
       try {
-        msg.channel.send(`Trying to connect \`${voiceChannel.name}\``);
+        let joinMessage;
+        await msg.channel.send(`**Trying to join** \`${voiceChannel.name}\``).then((message) => {
+          joinMessage = message;
+        });
         var connection = await voiceChannel.join();
+        joinMessage.edit(`**Joined** \`${msg.member.voice.channel.name}\``);
+
         queueContruct.connection = connection;
         this.play(msg, msg.guild, queueContruct.songs[0]);
       } catch (err) {
         this.queue.delete(msg.guild.id);
-        return msg.channel.send('Something went wrong: ' + err.message);
+        return msg.channel.send(`**Something went wrong:** \`${err.message}\``);
       }
     } else {
       serverQueue.songs.push(song);
-      return msg.channel.send(`Added to queue \`${song.title}\``);
+      return msg.channel.send({
+        embed: {
+          title: `${song.title}`,
+          url: `${song.url}`,
+          color: 942019,
+          thumbnail: {
+            url: `${song.thumbnail}`,
+          },
+          author: {
+            name: 'Added to queue',
+            url: 'https://github.com/async-devil/Zelenchong',
+            icon_url: `${msg.author.displayAvatarURL()}`,
+          },
+          fields: [
+            {
+              name: '`Video duration:`',
+              value: `${song.duration}`,
+            },
+            {
+              name: '`Position in queue`',
+              value: `${this.queue.get(msg.guild.id).songs.length - 1}`,
+            },
+          ],
+        },
+      });
     }
   }
 
   skip(msg, serverQueue) {
-    if (!msg.member.voice.channel) return msg.channel.send('Please join voice channel first');
-    if (!serverQueue) return msg.channel.send('Queue is empty!');
+    if (!msg.member.voice.channel) return msg.channel.send('**Please join voice channel first**');
+    if (!serverQueue) return msg.channel.send('**Queue is empty!**');
     serverQueue.connection.dispatcher.end();
   }
 
   stop(msg, serverQueue) {
-    if (!msg.member.voice.channel) return msg.channel.send('Please join voice channel first');
+    if (!msg.member.voice.channel) return msg.channel.send('**Please join voice channel first**');
     if (serverQueue) {
       serverQueue.songs = [];
       serverQueue.connection.dispatcher.end();
@@ -145,7 +225,7 @@ class Player {
         });
     }
 
-    msg.channel.send(`Disconnected from \`${msg.member.voice.channel.name}\``);
+    msg.channel.send(`**Disconnected from** \`${msg.member.voice.channel.name}\``);
   }
 
   play(msg, guild, song) {
@@ -158,13 +238,38 @@ class Player {
     const dispatcher = serverQueue.connection
       .play(ytdl(song.url))
       .on('finish', () => {
-        msg.channel.send(`Finished playing ${song.title}`)
         serverQueue.songs.shift();
         this.play(msg, guild, serverQueue.songs[0]);
       })
-      .on('start', () => msg.channel.send(`Now playing \`${song.title}\``))
+      .on('start', () =>
+        msg.channel.send({
+          embed: {
+            title: 'Now Playing',
+            description: `[${song.title}](${song.url})`,
+            url: 'https://github.com/async-devil/Zelenchong',
+            color: 942019,
+            thumbnail: {
+              url: `${song.thumbnail}`,
+            },
+            fields: [
+              {
+                name: '`Length:`',
+                value: `${song.duration}`,
+              },
+              {
+                name: '`Requested by:`',
+                value: `${msg.author.username}`,
+              },
+              {
+                name: '`Next in queue:`',
+                value: `${serverQueue.songs[1] ? serverQueue.songs[1].title : 'Nothing'}`,
+              },
+            ],
+          },
+        }),
+      )
       .on('error', (err) => {
-        msg.channel.send('Something went wrong: ' + err.message);
+        msg.channel.send(`**Something went wrong:** \`${err.message}\``);
         console.error(err);
       });
     dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
