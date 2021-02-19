@@ -11,6 +11,14 @@ const prefix = '='
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
+  client.user.setPresence({
+    status: 'online',
+    activity: {
+      name: `${prefix}help`,
+      type: 2,
+      url: 'https://github.com/async-devil/Zelenchong',
+    },
+  });
   clear(client, prefix);
 
   const player = new Player(client, prefix);
