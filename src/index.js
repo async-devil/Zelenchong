@@ -48,7 +48,9 @@ client.on('message', (msg) => {
       prefix
     }stop\n${
       prefix
-    }radio (Online radio url)\n${
+    }pause *Works correct only on radio streams*\n${
+      prefix
+    }resume *Works correct only on radio streams*\n${
       prefix
     }ping\`\`\``)
   }

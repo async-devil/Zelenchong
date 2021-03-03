@@ -47,39 +47,15 @@ class Player {
         this.stop(msg, serverQueue);
         return;
       }
-
-      if (command === 'radio') {
-        if (this.validURL(args[0])) {
-          this.join(msg).then((connection) => {
-            msg.channel.send({
-              embed: {
-                title: 'Unknown radio',
-                url: `${args[0]}`,
-                color: 942019,
-                author: {
-                  name: 'Started playing radio',
-                  url: 'https://github.com/async-devil/Zelenchong',
-                  icon_url: `${msg.author.displayAvatarURL()}`,
-                },
-                fields: [
-                  {
-                    name: '`Stream duration:`',
-                    value: '¯\\_(ツ)_/¯',
-                  },
-                  {
-                    name: '`Requested by:`',
-                    value: `${msg.author.username}`,
-                  },
-                ],
-              },
-            });
-
-            const dispatcher = connection.play(args[0])
-            dispatcher.setVolumeLogarithmic(1);
-          });
-        } else {
-          msg.channel.send('**Link is not valid**');
-        }
+      if (command === 'pause') {
+        const serverQueue = this.queue.get(msg.guild.id)
+        this.pause(msg, serverQueue)
+        return;
+      }
+      if (command === 'resume') {
+        const serverQueue = this.queue.get(msg.guild.id);
+        this.resume(msg, serverQueue);
+        return;
       }
     });
   }
@@ -103,8 +79,6 @@ class Player {
       connection = msg.member.voice.channel.join();
       if (joinMessage) {
         joinMessage.edit(`**Joined** \`${msg.member.voice.channel.name}\``);
-      } else {
-        msg.channel.send(`**Joined** \`${msg.member.voice.channel.name}\``);
       }
     } catch (err) {
       throw err;
@@ -132,39 +106,51 @@ class Player {
     if (ytdl.validateURL(args[0])) {
       const songInfo = await ytdl.getInfo(args[0]);
 
-    function fancyTimeFormat(duration) {
-      // Hours, minutes and seconds
-      var hrs = ~~(duration / 3600);
-      var mins = ~~((duration % 3600) / 60);
-      var secs = ~~duration % 60;
+      function fancyTimeFormat(duration) {
+        // Hours, minutes and seconds
+        var hrs = ~~(duration / 3600);
+        var mins = ~~((duration % 3600) / 60);
+        var secs = ~~duration % 60;
 
-      // Output like "1:01" or "4:03:59" or "123:03:59"
-      var ret = '';
+        // Output like "1:01" or "4:03:59" or "123:03:59"
+        var ret = '';
 
-      if (hrs > 0) {
-        ret += '' + hrs + ':' + (mins < 10 ? '0' : '');
+        if (hrs > 0) {
+          ret += '' + hrs + ':' + (mins < 10 ? '0' : '');
+        }
+
+        ret += '' + mins + ':' + (secs < 10 ? '0' : '');
+        ret += '' + secs;
+        return ret;
       }
 
-      ret += '' + mins + ':' + (secs < 10 ? '0' : '');
-      ret += '' + secs;
-      return ret;
-    }
-    
       song = {
         title: Util.escapeMarkdown(songInfo.videoDetails.title),
         url: args[0],
         thumbnail: songInfo.videoDetails.thumbnails[0].url,
         duration: fancyTimeFormat(parseInt(songInfo.videoDetails.lengthSeconds)),
+        type: 'Youtube',
       };
     } else {
-      const { videos } = await yts(args.join(' '));
-      if (!videos.length) return msg.channel.send('**No songs were found!**');
-      song = {
-        title: videos[0].title,
-        url: videos[0].url,
-        thumbnail: videos[0].thumbnail,
-        duration: videos[0].duration.timestamp,
-      };
+      if (this.validURL(args[0])) {
+        song = {
+          title: 'Unknown radio',
+          url: args[0],
+          thumbnail: 'https://img.icons8.com/ios/452/radio.png',
+          duration: '¯\\_(ツ)_/¯',
+          type: 'Radio',
+        };
+      } else {
+        const { videos } = await yts(args.join(' '));
+        if (!videos.length) return msg.channel.send('**No songs were found!**');
+        song = {
+          title: videos[0].title,
+          url: videos[0].url,
+          thumbnail: videos[0].thumbnail,
+          duration: videos[0].duration.timestamp,
+          type: 'Youtube',
+        };
+      }
     }
 
     if (!serverQueue) {
@@ -229,6 +215,21 @@ class Player {
     serverQueue.connection.dispatcher.end();
   }
 
+  pause(msg, serverQueue) {
+    if (!msg.member.voice.channel) return msg.channel.send('**Please join voice channel first**');
+    if (!serverQueue) return msg.channel.send('**Queue is empty!**');
+    serverQueue.connection.dispatcher.pause();
+    msg.channel.send('**Paused successfully**');
+  }
+
+  resume(msg, serverQueue) {
+    if (!msg.member.voice.channel) return msg.channel.send('**Please join voice channel first**');
+    if (!serverQueue) return msg.channel.send('**Queue is empty!**');
+    serverQueue.connection.dispatcher.resume();
+    msg.channel.send('**Resumed successfully**');
+    this.play(msg, msg.guild, serverQueue.songs[0]);
+  }
+
   stop(msg, serverQueue) {
     if (!msg.member.voice.channel) return msg.channel.send('**Please join voice channel first**');
     if (serverQueue) {
@@ -254,8 +255,18 @@ class Player {
       this.queue.delete(guild.id);
       return;
     }
+
+    const selectStreamType = (song) => {
+      switch (song.type) {
+        case 'Youtube':
+          return ytdl(song.url);
+        case 'Radio':
+          return song.url;
+      }
+    };
+
     const dispatcher = serverQueue.connection
-      .play(ytdl(song.url))
+      .play(selectStreamType(song))
       .on('finish', () => {
         serverQueue.songs.shift();
         this.play(msg, guild, serverQueue.songs[0]);
