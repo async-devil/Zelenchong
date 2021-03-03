@@ -38,20 +38,45 @@ client.on('message', (msg) => {
   }
 
   if(command == 'help') {
-    msg.reply(`Here is list of existing commands: \n\`\`\`${
-      prefix
-    }clear (Number of messages)\n${
-      prefix
-    }play (Youtube url or string to search)\n${
-      prefix
-    }skip\n${
-      prefix
-    }stop\n${
-      prefix
-    }pause *Works correct only on radio streams*\n${
-      prefix
-    }resume *Works correct only on radio streams*\n${
-      prefix
-    }ping\`\`\``)
+    msg.reply({
+      embed: {
+        title: 'Help page',
+        description: 'Here is list of existing commands: ',
+        url: 'https://github.com/async-devil/Zelenchong',
+        color: 942019,
+        footer: {
+          text: 'Thanks for using!',
+        },
+        thumbnail: {
+          url: 'https://img.icons8.com/ios/452/help.png',
+        },
+        fields: [
+          {
+            name: 'Video or audio player',
+            value: '=play `stream link or something to search on Youtube`',
+          },
+          {
+            name: 'Stop player',
+            value: '=stop',
+          },
+          {
+            name: 'Skip current song',
+            value: '=skip',
+          },
+          {
+            name: 'Pause player',
+            value: '=pause `works correct only on radio streams`',
+          },
+          {
+            name: 'Resume player',
+            value: '=resume `works correct only on radio streams`',
+          },
+          {
+            name: 'Message cleaner',
+            value: '=clear `number of messages to clear`',
+          },
+        ],
+      },
+    });
   }
 })
