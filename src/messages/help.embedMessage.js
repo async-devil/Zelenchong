@@ -18,7 +18,7 @@ module.exports = (prefix, color) => {
       fields: [
         {
           name: 'Video or audio player',
-          value: `${prefix}play \`stream link or something to search on Youtube\``,
+          value: `${prefix}play _or_ ${prefix}p \`stream link or something to search on Youtube\``,
         },
         {
           name: 'Stop player',
@@ -42,11 +42,27 @@ module.exports = (prefix, color) => {
         },
         {
           name: 'Shuffle queue',
-          value: `${prefix}shuffle`,
+          value: `${prefix}shuffle _or_ ${prefix}mix`,
         },
         {
           name: 'Message cleaner',
-          value: `${prefix}clear \`number of messages to clear\``,
+          value: `${prefix}clear _or_ ${prefix}c \`number of messages to clear, from 1 to 99\``,
+        },
+        {
+          name: 'Change color of messages',
+          value: `${prefix}color \`hex color in format like #000000 or 000000\``,
+        },
+        {
+          name: "Bot's birthday",
+          value: `${prefix}birthday`,
+        },
+        {
+          name: "Bot's current ping",
+          value: `${prefix}ping`,
+        },
+        {
+          name: "Call help message",
+          value: `${prefix}help _or_ ${prefix}h`,
         },
       ],
     },
