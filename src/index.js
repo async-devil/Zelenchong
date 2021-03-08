@@ -1,82 +1,108 @@
 const Discord = require('discord.js');
 require('dotenv').config();
 
-const Player = require('./Play');
+const Player = require('./Player/Player');
 const clear = require('./clear');
+const help = require('./messages/help.embedMessage');
+const message = require('./messages/message.embedMessage');
+const config = require('./config');
 
 const client = new Discord.Client();
 client.login(process.env.TOKEN);
 
-const prefix = '='
+const serversConfig = new Map()
+
+/**
+ * Deep clone of object
+ * @param {Object} obj 
+ */
+const clone = (obj) => {
+  return JSON.parse(JSON.stringify(obj));
+}
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
   client.user.setPresence({
-    status: 'online',
     activity: {
-      name: `${prefix}help`,
-      type: 2,
+      name: `${config.prefix}help`,
+      type: 'WATCHING',
       url: 'https://github.com/async-devil/Zelenchong',
     },
+    status: 'online',
   });
-  clear(client, prefix);
 
-  const player = new Player(client, prefix);
+  const player = new Player(client, config);
   player.init();
 });
 
 client.on('message', (msg) => {
   if (msg.author.bot) return;
-  if (!msg.content.startsWith(prefix)) return;
+  if (!msg.content.startsWith(config.prefix)) return;
 
-  const commandBody = msg.content.slice(prefix.length);
+  let serverConfig = serversConfig.get(msg.guild.id);
+  if (!serverConfig) {
+    //? Map.set sets reference to obj
+    serversConfig.set(msg.guild.id, clone(config))
+    serverConfig = clone(config);
+  }
+
+  const commandBody = msg.content.slice(serverConfig.prefix.length);
   const args = commandBody.split(' ');
   const command = args.shift().toLowerCase();
 
-  if (command == 'ping') {
-    msg.reply(`Pong! This message had a latency of \`${Date.now() - msg.createdTimestamp}\`ms.`);
+  if (command === 'ping') {
+    return msg.channel.send(
+      message(
+        `Pong! This message had a latency of \`${Date.now() - msg.createdTimestamp}\`ms :timer:`,
+        serverConfig.color,
+      ),
+    );
   }
 
-  if(command == 'help') {
-    msg.reply({
-      embed: {
-        title: 'Help page',
-        description: 'Here is list of existing commands: ',
-        url: 'https://github.com/async-devil/Zelenchong',
-        color: 942019,
-        footer: {
-          text: 'Thanks for using!',
-        },
-        thumbnail: {
-          url: 'https://img.icons8.com/ios/452/help.png',
-        },
-        fields: [
-          {
-            name: 'Video or audio player',
-            value: '=play `stream link or something to search on Youtube`',
-          },
-          {
-            name: 'Stop player',
-            value: '=stop',
-          },
-          {
-            name: 'Skip current song',
-            value: '=skip',
-          },
-          {
-            name: 'Pause player',
-            value: '=pause `works correct only on radio streams`',
-          },
-          {
-            name: 'Resume player',
-            value: '=resume `works correct only on radio streams`',
-          },
-          {
-            name: 'Message cleaner',
-            value: '=clear `number of messages to clear`',
-          },
-        ],
-      },
-    });
+  if (command == 'help' || command == 'h') {
+    return msg.reply(help(serverConfig.prefix, serverConfig.color));
   }
-})
+
+  if (command === 'clear' || command === 'c') {
+    return clear(client, msg, args, serverConfig.color);
+  }
+
+  if (command === 'color') {
+    let hex = args[0].toUpperCase();
+
+    if (!/(^[A-F0-9]{6})|(^#[A-F0-9]{6})/gm.test(hex))
+      return msg.channel.send(message(`:x: Invalid hex number`, '#CC0000'));
+    if (hex.startsWith('#')) hex = hex.slice(1);
+
+    try {
+      serversConfig.get(msg.guild.id).color = `0x${hex}`;
+      msg.channel.send(
+        message(
+          `:paintbrush: Succsessfuly set color to #${hex}`,
+          serversConfig.get(msg.guild.id).color,
+        ),
+      );
+    } catch (err) {
+      if (serverConfig.dev) console.err(err);
+      return msg.channel.send(message(`:x: Something went wrong: ${err.message}`, '#CC0000'));
+    }
+    return;
+  }
+  if (command === 'birthday') {
+    const birthday = new Date(2020, 7, 6);
+    const now = new Date();
+    const daysFrom = (now.getTime() - Date.parse(birthday)) / (1000 * 60 * 60 * 24);
+
+    if (now.getDate() === 6 && now.getMonth() === 7)
+      return msg.channel.send(
+        message(`:birthday: My birthday is today! Hurray! :fireworks:`, serverConfig.color),
+      );
+
+    return msg.channel.send(
+      message(
+        `:birthday: My birthday is: __06.08.20__, it was **${~~daysFrom}** days ago`,
+        serverConfig.color,
+      ),
+    );
+  }
+});
