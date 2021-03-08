@@ -1,53 +1,49 @@
-function init(client, prefix) {
-  client.on('message', async (msg) => {
-    if (msg.author.bot) return;
-    if (!msg.content.startsWith(prefix)) return;
+const message = require('./messages/message.embedMessage');
 
-    const commandBody = msg.content.slice(prefix.length);
-    const args = commandBody.split(' ');
-    const command = args.shift().toLowerCase();
-
-
-    if (command === 'clear') {
-      clear(
-        client,
-        msg,
-        args[0]
-      );
-    }
-  });
-}
-
-const clear = (client, msg, count) => {
-  const limit = 200;
-  const channel = client.channels.cache.get(msg.channel.id);
-
-  async function deleteByLimit(count) {
-    await channel.messages.fetch({ count: count + 1 }).then((messages) => {
-      msg.channel.bulkDelete(messages).catch((err) => {
-        channel.send(err.message);
-      });
-    });
+module.exports = async (client, msg, args, color) => {
+  if (!msg.channel.permissionsFor(client.user.id).has('MANAGE_MESSAGES')) {
+    return msg.channel.send(message(":x: I can't manage messages", '#CC0000'));
   }
-  if(count > limit) {
-    channel.send('Please set number of cleaning messages lower than \`200\`')
-  }
-  if (count >= 100) {
-    for (let i = 0; i < count / 100; i++) {
-      deleteByLimit(99).catch((err) => channel.send(`Something went wrong, ${err.message}`));
-    }
-    if (count % 100 != 0) {
-      deleteByLimit(count % 100).catch((err) =>
-        channel.send(`Something went wrong, ${err.message}`),
+  if (msg.member.hasPermission('MANAGE_MESSAGES')) {
+    let count = parseInt(args[0]);
+
+    if (isNaN(count))
+      return msg.channel.send(
+        message(':x: Please mention the amount of message that you want to delete', '#CC0000'),
       );
+
+    if (count >= 100) {
+      return msg.channel.send(
+        message(
+          ':x: Error, you can only delete between 1 and 99 messages at one time!',
+          '#CC0000',
+        ),
+      );
+    } else if (count < 1) {
+      return msg.channel.send(
+        message(
+          ':x: Error, you can only delete between 1 and 100 messages at one time!',
+          '#CC0000',
+        ),
+      );
+    } else {
+      try {
+        await msg.channel.bulkDelete(count + 1);
+        msg.channel
+          .send(
+            message(
+              `:recycle: Succsessfuly deleted ${count} message${count === 1 ? '' : 's'}!`,
+              '#4BB543',
+            ),
+          )
+          .then((message) => message.delete({ timeout: 1600 }));
+      } catch (err) {
+        return msg.channel.send(message(`:x: Something went wrong: ${err.message}`, '#CC0000'));
+      }
     }
   } else {
-    deleteByLimit(count).catch((err) => channel.send(`Something went wrong, ${err.message}`));
+    return msg.channel.send(
+      message(':x: You need to have rights to manage messages to clear', '#CC0000'),
+    );
   }
-
-  channel
-    .send(`<@${msg.author.id}> succsesfuly deleted ${count} messages!`)
-    .then((message) => message.delete({ timeout: 2000 }));
 };
-
-module.exports = init;
