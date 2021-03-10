@@ -37,6 +37,7 @@ client.on('ready', () => {
 
 client.on('message', (msg) => {
   if (msg.author.bot) return;
+  if (msg.guild === null) return;
   if (!msg.content.startsWith(config.prefix)) return;
 
   let serverConfig = serversConfig.get(msg.guild.id);
