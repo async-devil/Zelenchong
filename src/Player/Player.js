@@ -21,6 +21,7 @@ class Player {
   init() {
     this.client.on('message', (msg) => {
       if (msg.author.bot) return;
+      if (msg.guild === null) return;
       if (!msg.content.startsWith(this.config.prefix)) return;
 
       const commandBody = msg.content.slice(this.config.prefix.length);
@@ -28,8 +29,7 @@ class Player {
       const command = args.shift().toLowerCase();
 
       if (command === 'play' || command === 'p') {
-        execute(msg, args, this.queue, this.config);
-        return;
+        return execute(msg, args, this.queue, this.config);
       }
       if (command === 'skip' || command === 'fs') {
         return commands.skip(msg, this.queue);

@@ -12,7 +12,7 @@ const { VoiceConnection, Message, Client } = require('discord.js');
     const bot = msg.guild.members.cache.get(client.user.id);
 
     if (!msg.member.voice.channel) {
-      msg.channel.send('**Please join voice channel first**');
+      return msg.channel.send('**Please join voice channel first**');
     }
 
     let connection, joinMessage;
@@ -31,7 +31,7 @@ const { VoiceConnection, Message, Client } = require('discord.js');
       }
     } catch (err) {
       if (dev) console.error(err);
-      msg.channel.send(`**Something went wrong:** \`${err.message}\``);
+      return msg.channel.send(`**Something went wrong:** \`${err.message}\``);
     }
     return connection;
   }

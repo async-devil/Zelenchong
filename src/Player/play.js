@@ -45,8 +45,8 @@ module.exports = function play(msg, song, queue, config) {
       //* Deletes queue to prevent errors with connection
       queue.delete(msg.guild.id);
 
-      msg.channel.send(message(`:x: Something went wrong: ${err.message}`, '#CC0000'));
       if (config.dev) console.error(err);
+      return msg.channel.send(message(`:x: Something went wrong: ${err.message}`, '#CC0000'));
     });
   dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 };
