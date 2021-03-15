@@ -61,7 +61,7 @@ module.exports = (prefix, color) => {
           value: `${prefix}ping`,
         },
         {
-          name: "Call help message",
+          name: 'Call help message',
           value: `${prefix}help _or_ ${prefix}h`,
         },
       ],

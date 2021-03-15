@@ -14,10 +14,7 @@ module.exports = async (client, msg, args, color) => {
 
     if (count >= 100) {
       return msg.channel.send(
-        message(
-          ':x: Error, you can only delete between 1 and 99 messages at one time!',
-          '#CC0000',
-        ),
+        message(':x: Error, you can only delete between 1 and 99 messages at one time!', '#CC0000'),
       );
     } else if (count < 1) {
       return msg.channel.send(

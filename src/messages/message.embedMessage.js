@@ -9,4 +9,4 @@ module.exports = (description, color) => {
       color: color,
     },
   };
-}
+};

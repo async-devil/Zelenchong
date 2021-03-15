@@ -1,7 +1,7 @@
 const { Client } = require('discord.js');
 
 const execute = require('./execute');
-const commands = require('./commands')
+const commands = require('./commands');
 
 /** Discord music bot player*/
 class Player {
@@ -14,7 +14,7 @@ class Player {
    */
   constructor(client, config) {
     this.client = client;
-    this.config = config
+    this.config = config;
   }
 
   /** Initialize bot commands */

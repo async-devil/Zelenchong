@@ -2,7 +2,7 @@ const { VoiceConnection, Message, TextChannel, VoiceChannel, Client } = require(
 
 const play = require('./play');
 const join = require('./join');
-const config = require('../config')
+const config = require('../config');
 const message = require('../messages/message.embedMessage');
 
 const dev = config.dev;
@@ -19,7 +19,8 @@ const dev = config.dev;
  */
 function skip(msg, queue) {
   const serverQueue = queue.get(msg.channel.guild.id);
-  if (!msg.member.voice.channel) return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
+  if (!msg.member.voice.channel)
+    return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
   if (!serverQueue) return msg.channel.send(message(`:exclamation: Queue is empty!`, '#CC0000'));
   try {
     serverQueue.connection.dispatcher.end();
@@ -44,7 +45,8 @@ function skip(msg, queue) {
 function reverse(msg, queue) {
   const serverQueue = queue.get(msg.channel.guild.id);
 
-  if (!msg.member.voice.channel) return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
+  if (!msg.member.voice.channel)
+    return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
   if (!serverQueue) return msg.channel.send(message(`:exclamation: Queue is empty!`, '#CC0000'));
   try {
     serverQueue.songs.reverse();
@@ -58,7 +60,8 @@ function reverse(msg, queue) {
 function shuffle(msg, queue) {
   const serverQueue = queue.get(msg.channel.guild.id);
 
-  if (!msg.member.voice.channel) return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
+  if (!msg.member.voice.channel)
+    return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
   if (!serverQueue) return msg.channel.send(message(`:exclamation: Queue is empty!`, '#CC0000'));
 
   function arrayShuffle(arr) {
@@ -92,7 +95,8 @@ function shuffle(msg, queue) {
 function pause(msg, queue) {
   const serverQueue = queue.get(msg.channel.guild.id);
 
-  if (!msg.member.voice.channel) return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
+  if (!msg.member.voice.channel)
+    return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
   if (!serverQueue) return msg.channel.send(message(`:exclamation: Queue is empty!`, '#CC0000'));
   try {
     serverQueue.connection.dispatcher.pause();
@@ -116,13 +120,12 @@ function pause(msg, queue) {
  */
 function resume(msg, queue) {
   const serverQueue = queue.get(msg.channel.guild.id);
-  if (!msg.member.voice.channel) return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
+  if (!msg.member.voice.channel)
+    return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
   if (!serverQueue) return msg.channel.send(message(`:exclamation: Queue is empty!`, '#CC0000'));
   try {
     serverQueue.connection.dispatcher.resume();
-    msg.channel.send(
-      message(`:play_pause: Resumed successfuly`, '#4BB543'),
-    );
+    msg.channel.send(message(`:play_pause: Resumed successfuly`, '#4BB543'));
     play(msg, serverQueue.songs[0], queue, config);
   } catch (err) {
     if (dev) console.error(err);
@@ -149,7 +152,8 @@ function stop(msg, queue, client) {
 
   const serverQueue = queue.get(msg.channel.guild.id);
 
-  if (!msg.member.voice.channel) return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
+  if (!msg.member.voice.channel)
+    return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
   if (serverQueue) {
     serverQueue.songs = [];
     serverQueue.connection.dispatcher.end();
@@ -164,8 +168,11 @@ function stop(msg, queue, client) {
   }
 
   msg.channel.send(
-    message(`:mailbox_with_no_mail: Disconnected from **${msg.member.voice.channel.name}**`, '#4BB543'),
-  ); 
+    message(
+      `:mailbox_with_no_mail: Disconnected from **${msg.member.voice.channel.name}**`,
+      '#4BB543',
+    ),
+  );
 }
 
 module.exports = {

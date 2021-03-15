@@ -3,7 +3,7 @@ const ytdl = require('ytdl-core');
 const yts = require('yt-search');
 const ytfps = require('ytfps');
 
-const play = require('./play')
+const play = require('./play');
 
 const addToQueue = require('../messages/addedToQueue.embedMessage');
 const addPlaylist = require('../messages/addedPlaylistToQueue.embedMessage');
@@ -75,7 +75,8 @@ module.exports = async function execute(msg, args, queue, config) {
   let serverQueue = queue.get(msg.guild.id);
   const voiceChannel = msg.member.voice.channel;
 
-  if (!voiceChannel) return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
+  if (!voiceChannel)
+    return msg.channel.send(message(':exclamation: Please join voice channel first', '#CC0000'));
 
   /*------------------------------------------------------------------------------------------*/
   //! Permisions part
@@ -165,11 +166,13 @@ module.exports = async function execute(msg, args, queue, config) {
   } else {
     /*------------------------------------------------------------------------------------------*/
     //! If not, search in youtube for argument and get first one
-    if (args.length === 0) return msg.channel.send(message(':exclamation: No arguments were given!', '#CC0000'));
+    if (args.length === 0)
+      return msg.channel.send(message(':exclamation: No arguments were given!', '#CC0000'));
     if (dev) console.log('Search by name: ' + args.join(' '));
 
     const { videos } = await yts(args.join(' '));
-    if (!videos.length) return msg.channel.send(message(':exclamation: No songs were found!', '#CC0000'));
+    if (!videos.length)
+      return msg.channel.send(message(':exclamation: No songs were found!', '#CC0000'));
 
     song = {
       title: videos[0].title,
@@ -198,9 +201,11 @@ module.exports = async function execute(msg, args, queue, config) {
 
     try {
       let joinMessage;
-      await msg.channel.send(message(`:hourglass: Trying to join **${voiceChannel.name}**`, config.color)).then((message) => {
-        joinMessage = message;
-      });
+      await msg.channel
+        .send(message(`:hourglass: Trying to join **${voiceChannel.name}**`, config.color))
+        .then((message) => {
+          joinMessage = message;
+        });
       var connection = await voiceChannel.join();
       joinMessage.edit(
         message(`:white_check_mark: Joined **${msg.member.voice.channel.name}**`, '#4BB543'),
@@ -221,7 +226,7 @@ module.exports = async function execute(msg, args, queue, config) {
     if (song) {
       serverQueue.songs.push(song);
       return msg.channel.send(addToQueue(msg, song, serverQueue, config.color));
-    /*------------------------------------------------------------------------------------------*/
+      /*------------------------------------------------------------------------------------------*/
     } else {
       /*------------------------------------------------------------------------------------------*/
       //! If it is a playlist

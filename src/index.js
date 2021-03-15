@@ -10,15 +10,15 @@ const config = require('./config');
 const client = new Discord.Client();
 client.login(process.env.TOKEN);
 
-const serversConfig = new Map()
+const serversConfig = new Map();
 
 /**
  * Deep clone of object
- * @param {Object} obj 
+ * @param {Object} obj
  */
 const clone = (obj) => {
   return JSON.parse(JSON.stringify(obj));
-}
+};
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
@@ -43,7 +43,7 @@ client.on('message', (msg) => {
   let serverConfig = serversConfig.get(msg.guild.id);
   if (!serverConfig) {
     //? Map.set sets reference to obj
-    serversConfig.set(msg.guild.id, clone(config))
+    serversConfig.set(msg.guild.id, clone(config));
     serverConfig = clone(config);
   }
 
