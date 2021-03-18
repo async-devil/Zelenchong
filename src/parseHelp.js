@@ -19,10 +19,10 @@ const prepare = (prefix, data) => {
   const names = [...data]
     .filter((line) => line.startsWith('-'))
     .map((line) => line.replace(/^\ *- /gm, ''));
-    
+
   const values = [...data]
     .filter((line) => line.startsWith(' '))
-    .map((line) => line.replace(/^\ *- /gm, ''));
+    .map((line) => line.replace(/^\ *- /gm, '').replace(/\*\*/gm, ''));
 
   if (names.length !== values.length)
     throw new Error(
@@ -33,17 +33,17 @@ const prepare = (prefix, data) => {
 
   const parsed = [];
   for (let i = 0; i < names.length; i += 1) {
-    parsed.push(Object({name: names[i], value: values[i]}))
+    parsed.push(Object({ name: names[i], value: values[i] }));
   }
-  return parsed
+  return parsed;
 };
 
-/** 
+/**
  * @param {string} prefix Bot prefix
  */
 const parse = async (prefix) => {
-  const data = await fs.readFile('./README.md', 'utf8')
-  return prepare(prefix, data)
+  const data = await fs.readFile('./README.md', 'utf8');
+  return prepare(prefix, data);
 };
 
-module.exports = parse
+module.exports = parse;
