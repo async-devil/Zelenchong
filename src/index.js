@@ -5,12 +5,14 @@ const Player = require('./Player/Player');
 const clear = require('./clear');
 const help = require('./messages/help.embedMessage');
 const message = require('./messages/message.embedMessage');
+const helpCommands = require('./parseHelp');
 const config = require('./config');
 
 const client = new Discord.Client();
 client.login(process.env.TOKEN);
 
 const serversConfig = new Map();
+let commands;
 
 /**
  * Deep clone of object
@@ -61,7 +63,12 @@ client.on('message', (msg) => {
   }
 
   if (command == 'help' || command == 'h') {
-    return msg.reply(help(serverConfig.prefix, serverConfig.color));
+    if (!commands)
+      helpCommands(serverConfig.prefix).then((data) => {
+        commands = data;
+        return msg.reply(help(serverConfig.color, commands));
+      });
+    else return msg.reply(help(serverConfig.color, commands));
   }
 
   if (command === 'clear' || command === 'c') {
