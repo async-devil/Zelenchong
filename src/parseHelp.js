@@ -9,7 +9,8 @@ const prepare = (prefix, data) => {
   data = data
     .split('\n')
     .map((line) => line.replace('\r', '').replaceAll('=', prefix))
-    .filter((line) => line && line.includes('-'));
+    //! Ignores all except lines which starts from "-"
+    .filter((line) => line && line.trim().startsWith('-'));
 
   /*
   ? - name
@@ -18,11 +19,13 @@ const prepare = (prefix, data) => {
 
   const names = [...data]
     .filter((line) => line.startsWith('-'))
+    //? Deletes list element markdown tag "-"
     .map((line) => line.replace(/^\ *- /gm, ''));
 
   const values = [...data]
     .filter((line) => line.startsWith(' '))
-    .map((line) => line.replace(/^\ *- /gm, '').replace(/\*\*/gm, ''));
+    //? Deletes list element markdown tag "-", bolding signs "**...**" and next line symbols "\"
+    .map((line) => line.replace(/(^\ *- )|(\*\*)|(\\)/gm, ''))
 
   if (names.length !== values.length)
     throw new Error(
