@@ -69,7 +69,7 @@ module.exports = (playlist, color) => {
       fields: [
         {
           name: '`Description:`',
-          value: `${playlist.description}`,
+          value: `${playlist.description ? playlist.description : 'No description provided'}`,
         },
         {
           name: '`Author:`',

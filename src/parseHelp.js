@@ -8,7 +8,7 @@ const fs = require('fs').promises;
 const prepare = (prefix, data) => {
   data = data
     .split('\n')
-    .map((line) => line.replace('\r', '').replaceAll('=', prefix))
+    .map((line) => line.replace(/\r/gm, '').replace(/=/gm, prefix))
     //! Ignores all except lines which starts from "-"
     .filter((line) => line && line.trim().startsWith('-'));
 
