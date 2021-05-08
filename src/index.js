@@ -2,6 +2,7 @@ const Discord = require('discord.js');
 require('dotenv').config();
 
 const Player = require('./Player/Player');
+const Slots = require('./Slots/Slots')
 const clear = require('./clear');
 const help = require('./messages/help.embedMessage');
 const message = require('./messages/message.embedMessage');
@@ -9,7 +10,7 @@ const helpCommands = require('./parseHelp');
 const config = require('./config');
 
 const client = new Discord.Client();
-client.login(process.env.TOKEN);
+client.login(process.env.TOKEN);  
 
 const serversConfig = new Map();
 let commands;
@@ -35,7 +36,10 @@ client.on('ready', () => {
 
   const player = new Player(client, config);
   player.init();
-});
+
+  const slots = new Slots(client, config);
+  slots.init()
+}); 
 
 client.on('message', (msg) => {
   if (msg.author.bot) return;
