@@ -1,11 +1,11 @@
 {
   "name": "zelenchong",
-  "version": "1.0.0",
+  "version": "2.2.3",
   "description": "Zelenchong bot source",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "npx nodemon src/index.js --watch src/"
+    "start": "npx tsc --outDir ./build && node build/index.js",
+    "dev": "npx nodemon ./src/index.ts --watch ./src/*/*.*"
   },
   "repository": {
     "type": "git",
@@ -22,13 +22,15 @@
   },
   "homepage": "https://github.com/async-devil/Zelenchong#readme",
   "devDependencies": {
+    "@types/yt-search": "^2.3.0",
     "eslint": "^7.15.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-config-prettier": "^6.15.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-prettier": "^3.3.0",
     "nodemon": "^2.0.7",
-    "prettier": "2.1.2"
+    "prettier": "2.1.2",
+    "ts-node": "^9.1.1"
   },
   "prettier": {
     "printWidth": 100,
@@ -40,36 +42,44 @@
     "semi": true
   },
   "eslintConfig": {
-    "root": true,
-    "env": {
-      "es6": true,
-      "browser": true,
-      "node": true
-    },
     "extends": [
-      "airbnb-base",
-      "plugin:prettier/recommended"
-    ],
-    "plugins": [
-      "babel",
-      "import",
-      "plugin:prettier"
-    ],
-    "parser": "babel-eslint",
-    "parserOptions": {
-      "ecmaVersion": 6,
-      "sourceType": "module"
-    },
-    "ignorePatterns": [
-      "/.git",
-      "/.vscode",
-      "tsconfig.json",
-      "node_modules"
+      "prettier"
     ],
     "rules": {
-      "no-console": "off",
-      "prettier/prettier": "error"
-    }
+      "jsx-quotes": [
+        1,
+        "prefer-double"
+      ],
+      "import/order": [
+        "error",
+        {
+          "groups": [
+            "builtin",
+            "external",
+            "internal",
+            [
+              "parent",
+              "sibling"
+            ]
+          ],
+          "pathGroups": [
+            {
+              "pattern": "react",
+              "group": "external",
+              "position": "before"
+            }
+          ],
+          "newlines-between": "always",
+          "alphabetize": {
+            "order": "asc",
+            "caseInsensitive": true
+          }
+        }
+      ]
+    },
+    "plugins": [
+      "prettier"
+    ]
   },
   "nodemonConfig": {
     "ignore": [
@@ -77,13 +87,18 @@
       "/node_modules",
       "/.vscode"
     ],
-    "ext": "js"
+    "watch": [
+      "src"
+    ],
+    "ext": "ts,json",
+    "exec": "npx ts-node ./src/index.ts"
   },
   "dependencies": {
     "discord.js": "^12.5.1",
     "dotenv": "^8.2.0",
     "ffmpeg-static": "^4.2.7",
     "opusscript": "^0.0.7",
+    "typescript": "^4.2.4",
     "yt-search": "^2.7.3",
     "ytdl-core": "^4.5.0",
     "ytfps": "^1.0.4"
