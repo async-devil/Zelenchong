@@ -1,12 +1,20 @@
 const message = require('../messages/message.embedMessage');
 
 class Slots {
-  _emojis = [':four_leaf_clover:', ':blueberries:', ':cherries:', ':kiwi:', ':seven:', ':crown:', ':peach:'];
+  _emojis = [
+    ':four_leaf_clover:',
+    ':blueberries:',
+    ':cherries:',
+    ':kiwi:',
+    ':seven:',
+    ':crown:',
+    ':peach:',
+  ];
 
   constructor(client, config) {
     this.client = client;
     this.config = config;
-    this.serversLuck = new Map()
+    this.serversLuck = new Map();
   }
 
   /*------------------------------------------------------------------------------------------*/
@@ -21,8 +29,8 @@ class Slots {
 
     first = this.getRandomEmoji();
 
-    second = luck > randomValue ? first : this.getRandomEmoji()
-    third = luck / 2 > randomValue ? first : this.getRandomEmoji()
+    second = luck > randomValue ? first : this.getRandomEmoji();
+    third = luck / 2 > randomValue ? first : this.getRandomEmoji();
 
     return [first, second, third];
   }
@@ -70,8 +78,7 @@ class Slots {
       const args = commandBody.split(' ');
       const command = args.shift().toLowerCase();
 
-      if (!this.serversLuck.has(msg.guild.id))
-        this.serversLuck.set(msg.guild.id, 0)
+      if (!this.serversLuck.has(msg.guild.id)) this.serversLuck.set(msg.guild.id, 0);
 
       if (command === 'spin' || command === 'roll') {
         this.spin(msg);
@@ -81,4 +88,3 @@ class Slots {
 }
 
 module.exports = Slots;
-    

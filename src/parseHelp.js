@@ -25,7 +25,7 @@ const prepare = (prefix, data) => {
   const values = [...data]
     .filter((line) => line.startsWith(' '))
     //? Deletes list element markdown tag "-", bolding signs "**...**" and next line symbols "\"
-    .map((line) => line.replace(/(^\ *- )|(\*\*)|(\\)/gm, ''))
+    .map((line) => line.replace(/(^\ *- )|(\*\*)|(\\)/gm, ''));
 
   if (names.length !== values.length)
     throw new Error(
